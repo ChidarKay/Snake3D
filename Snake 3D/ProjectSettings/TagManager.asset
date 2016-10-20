@@ -5,6 +5,7 @@ TagManager:
   serializedVersion: 2
   tags:
   - Food
+  - HighScore
   layers:
   - Default
   - TransparentFX
