@@ -313,7 +313,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5f82feb1ed32eb24997e53251cba2ebd, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  tickDuration: 0.5
+  tickDuration: 0.1
   boardLength: 26
   boardHeight: 26
   snakeBodiesPrefab: {fileID: 1000010891980488, guid: 0c20b22b034cf6e44b1422ad61e01d85,

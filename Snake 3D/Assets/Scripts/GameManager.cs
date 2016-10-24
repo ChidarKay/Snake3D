@@ -15,7 +15,9 @@ public class GameManager : MonoBehaviour {
     public GameObject snakeBodiesPrefab;
     public GameObject foodInstance;
     public GameObject highScoreContainerPrefab;
+
     public List<GameObject> bodyList;
+    List<Vector3> inputList;
 
     GameObject highScoreContainerInstance;
     HighScore hs;
@@ -26,22 +28,14 @@ public class GameManager : MonoBehaviour {
     int score;
 
     enum Direction { Up, Down, Right, Left };
-    Direction deniedDirection;
-    Direction oldDeniedDirection;
+    Direction previousDirection;
+    Direction oppositeDirection;
 
     Vector3 moveDir;
     Vector3 snakeEnd;
 
     public bool isGameOver;
     bool foodEaten;
-
-
-
-
-    List<Vector3> inputList;
-    Direction lastPress;
-    float time2;
-    bool hasInputOccurred;
 
 
 
@@ -58,14 +52,13 @@ public class GameManager : MonoBehaviour {
         hs = highScoreContainerInstance.GetComponent<HighScore>();
 
         moveDir = new Vector3(-1, 0, 0);
-        deniedDirection = Direction.Right;
-        oldDeniedDirection = deniedDirection;
         gameOverText.enabled = false;
 
         highScoreText.text = "High score: " + hs.highScore.ToString();
 
         inputList = new List<Vector3>();
-        lastPress = Direction.Left;
+        previousDirection = Direction.Left;
+        oppositeDirection = Direction.Right;
     }
 
     void Update() {
@@ -81,7 +74,12 @@ public class GameManager : MonoBehaviour {
 
         Controls();
         FoodEater();
-        //ResetInputList(3f);
+
+        //string s = " ";
+        //foreach (Vector3 element in inputList) {
+        //    s += element;
+        //}
+        //print(s);
 
         while (time > tickDuration) {
             Movement();
@@ -94,27 +92,6 @@ public class GameManager : MonoBehaviour {
 
 
 
-    //Player input - arrow keys to move, can't move backwards
-    //void Controls() {
-    //    if (Input.GetKey("up") && deniedDirection != Direction.Up && oldDeniedDirection != Direction.Up) {
-    //        moveDir = new Vector3(0, 0, 1);
-    //        deniedDirection = Direction.Down;
-    //    }
-    //    if (Input.GetKey("down") && deniedDirection != Direction.Down && oldDeniedDirection != Direction.Down) {
-    //        moveDir = new Vector3(0, 0, -1);
-    //        deniedDirection = Direction.Up;
-    //    }
-    //    if (Input.GetKey("right") && deniedDirection != Direction.Right && oldDeniedDirection != Direction.Right) {
-    //        moveDir = new Vector3(1, 0, 0);
-    //        deniedDirection = Direction.Left;
-
-    //    }
-    //    if (Input.GetKey("left") && deniedDirection != Direction.Left && oldDeniedDirection != Direction.Left) {
-    //        moveDir = new Vector3(-1, 0, 0);
-    //        deniedDirection = Direction.Right;
-    //    }
-    //}
-
     void FoodEater() {
         if (Mathf.Round(Vector3.Distance(bodyList[0].transform.position, foodInstance.transform.position)) == 0) {                      //Are Food and Snake close together?
             foodInstance.transform.position = RandomValidPosition();
@@ -122,19 +99,6 @@ public class GameManager : MonoBehaviour {
 
             ScoreIncrementer();
         }
-    }
-
-    void BodyMover() {
-        //Move the first part of the snake
-        bodyList[0].transform.position += moveDir;
-        oldDeniedDirection = deniedDirection;
-
-        //Move the rest of the parts
-        snakeEnd = bodyList[bodyList.Count - 1].transform.position;
-
-        bodyList[bodyList.Count - 1].transform.position = bodyList[0].transform.position - moveDir;
-        bodyList.Insert(1, bodyList[bodyList.Count - 1]);
-        bodyList.RemoveAt(bodyList.Count - 1);
     }
 
     void BodyGrower() {
@@ -145,7 +109,7 @@ public class GameManager : MonoBehaviour {
         }
     }
 
-    //Returns a random Vector3 position that is on board but not on the snake
+    //Returns a random Vector3 position that is on the board but not on the snake
     Vector3 RandomValidPosition() {
         int randomX = Random.Range(-boardLength / 2, boardLength / 2);
         int randomY = Random.Range(-boardHeight / 2, boardHeight / 2);
@@ -171,6 +135,7 @@ public class GameManager : MonoBehaviour {
     }
 
     void Movement() {
+        //Move head first according to the buffer then just forward
         if (inputList.Count != 0) {
             moveDir = inputList[0];
             bodyList[0].transform.position += moveDir;
@@ -179,51 +144,34 @@ public class GameManager : MonoBehaviour {
         else {
             bodyList[0].transform.position += moveDir;
         }
+
+        //Move the rest of the parts
+        snakeEnd = bodyList[bodyList.Count - 1].transform.position;
+
+        bodyList[bodyList.Count - 1].transform.position = bodyList[0].transform.position - moveDir;
+        bodyList.Insert(1, bodyList[bodyList.Count - 1]);
+        bodyList.RemoveAt(bodyList.Count - 1);
     }
 
     void Controls() {
-        if (Input.GetKey("up") && lastPress != Direction.Up) {
-            moveDir = new Vector3(0, 0, 1);
-            inputList.Add(moveDir);
 
-            lastPress = Direction.Up;
-            hasInputOccurred = true;
+        string[] keys = new string[] { "up", "down", "left", "right" };
+        Direction[] directions = new Direction[] { Direction.Up, Direction.Down, Direction.Left, Direction.Right };
+        Direction[] oppositeDirections = new Direction[] { Direction.Down, Direction.Up, Direction.Right, Direction.Left };
+        Vector3[] moveDirections = new Vector3[] { Vector3.forward, Vector3.back, Vector3.left, Vector3.right };
+        for (int i = 0; i < 4; i++) {
+            if (Input.GetKeyDown(keys[i]) && previousDirection != directions[i] && oppositeDirection != directions[i]) {
+                moveDir = moveDirections[i];
+                inputList.Add(moveDir);
+
+                previousDirection = directions[i];
+                oppositeDirection = oppositeDirections[i];
+
+                //Limit the size of the buffer to 3
+                if (inputList.Count > 3) {
+                    inputList.RemoveAt(inputList.Count-1);
+                }
+            }
         }
-        if (Input.GetKey("down") && lastPress != Direction.Down) {
-            moveDir = new Vector3(0, 0, -1);
-            inputList.Add(moveDir);
-
-            lastPress = Direction.Down;
-            hasInputOccurred = true;
-        }
-        if (Input.GetKey("left") && lastPress != Direction.Left) {
-            moveDir = new Vector3(-1, 0, 0);
-            inputList.Add(moveDir);
-
-            lastPress = Direction.Left;
-            hasInputOccurred = true;
-        }
-        if (Input.GetKey("right") && lastPress != Direction.Right) {
-            moveDir = new Vector3(1, 0, 0);
-            inputList.Add(moveDir);
-
-            lastPress = Direction.Right;
-            hasInputOccurred = true;
-        }
-    }
-
-    void ResetInputList(float resetTime) {
-
-        if (hasInputOccurred == true) {
-            time2 += Time.deltaTime;
-        }
-
-
-        while (time2 > resetTime) {
-            inputList.Clear();
-            time2 -= resetTime;
-            hasInputOccurred = false;
-        }
-        print(time2);
     }
 }
